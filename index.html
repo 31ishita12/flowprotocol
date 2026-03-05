@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flow Prep Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f8f7f4; --white:#fff; --border:#e2ddd6;
+  --accent:#1a6b4a; --al:#e8f4ee;
+  --amber:#92500a; --ambl:#fff4e6;
+  --blue:#1a3a6b; --bl:#eef2fa;
+  --text:#1a1a1a; --t2:#555; --t3:#999;
+  --sans:'IBM Plex Sans',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;}
+.wrap{max-width:780px;margin:0 auto;padding:40px 24px 80px;}
+header{margin-bottom:32px;}
+.lab{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;}
+h1{font-size:26px;font-weight:600;letter-spacing:-.02em;}
+
+/* tabs */
+.tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:28px;}
+.tab{padding:10px 18px;background:none;border:none;font-family:var(--sans);font-size:13px;font-weight:500;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;}
+.tab:hover{color:var(--t2);}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);}
+.tab.done{color:var(--t2);}
+.tab.done::after{content:' ✓';color:var(--accent);font-size:11px;}
+
+/* panels */
+.panel{display:none;}
+.panel.on{display:block;animation:fu .2s ease;}
+@keyframes fu{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+
+/* cards */
+.card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:16px;}
+.ctitle{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:16px;}
+
+/* explain boxes */
+.info{background:var(--bl);border-left:3px solid var(--blue);border-radius:0 5px 5px 0;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--blue);line-height:1.7;}
+.info strong{font-weight:600;}
+.warn{background:var(--ambl);border-left:3px solid var(--amber);border-radius:0 5px 5px 0;padding:10px 14px;margin-top:12px;font-size:12px;color:var(--amber);line-height:1.6;}
+
+/* fields */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.flabel{font-size:13px;font-weight:500;}
+.fhint{font-size:11px;color:var(--t3);font-style:italic;margin-bottom:2px;}
+
+input[type=number],input[type=text]{border:1px solid var(--border);border-radius:5px;padding:9px 12px;font-family:var(--mono);font-size:14px;color:var(--text);background:var(--bg);width:100%;transition:border-color .15s;-moz-appearance:textfield;}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;}
+input:focus{outline:none;border-color:var(--accent);background:var(--white);}
+input[readonly]{cursor:default;}
+input.ro{background:var(--al)!important;color:var(--accent)!important;border-color:var(--accent)!important;}
+
+/* result pills */
+.pills{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:16px;}
+.pill{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 16px;}
+.pill.hi{background:var(--al);border-color:var(--accent);}
+.pill.am{background:var(--ambl);border-color:#e0a060;}
+.pill.wh{background:var(--white);border-color:var(--amber);}
+.pl{font-size:11px;color:var(--t3);margin-bottom:4px;}
+.pv{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--text);}
+.pill.hi .pv{color:var(--accent);}
+.pill.am .pv,.pill.wh .pv{color:var(--amber);}
+.pu{font-size:11px;color:var(--t3);font-family:var(--mono);}
+
+/* ab table */
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--border);}
+td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--bg);}
+td input{background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:3px 4px;font-size:13px;font-family:var(--mono);}
+td input:focus{border-bottom-color:var(--accent);outline:none;background:transparent;}
+.cv{font-family:var(--mono);font-weight:500;color:var(--accent);}
+.cva{font-family:var(--mono);font-weight:500;color:var(--amber);}
+
+.btnx{background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:3px;transition:all .15s;}
+.btnx:hover{background:#fee;color:#c00;}
+.btnadd{width:100%;margin-top:10px;padding:9px;background:none;border:1px dashed var(--border);border-radius:5px;font-family:var(--sans);font-size:12px;color:var(--t3);cursor:pointer;transition:all .15s;}
+.btnadd:hover{border-color:var(--accent);color:var(--accent);}
+
+/* protocol steps */
+.pstep{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);}
+.pstep:last-child{border-bottom:none;}
+.pnum{width:28px;height:28px;border-radius:50%;background:var(--al);color:var(--accent);font-family:var(--mono);font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.pbody{flex:1;}
+.ptitle{font-weight:600;font-size:14px;margin-bottom:4px;}
+.pdesc{font-size:13px;color:var(--t2);line-height:1.65;}
+.pcalc{margin-top:8px;padding:8px 12px;background:var(--al);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--accent);}
+
+/* buttons */
+.btnrow{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;}
+.btn{padding:10px 24px;background:var(--accent);color:white;border:none;border-radius:5px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;}
+.btn:hover{background:#155c3d;}
+.btng{padding:10px 24px;background:none;color:var(--t2);border:1px solid var(--border);border-radius:5px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;}
+.btng:hover{border-color:var(--t2);color:var(--text);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="lab">B-SENSE · Flow Cytometry</div>
+  <h1>Flow Prep Calculator</h1>
+</header>
+
+<div class="tabs">
+  <button class="tab on"  id="t0" onclick="go(0)">1. Experiment</button>
+  <button class="tab"     id="t1" onclick="go(1)">2. Antibodies</button>
+  <button class="tab"     id="t2" onclick="go(2)">3. Ab Dilution</button>
+  <button class="tab"     id="t3" onclick="go(3)">4. Protocol</button>
+</div>
+
+<!-- ═══ PANEL 1: EXPERIMENT ═══ -->
+<div class="panel on" id="p0">
+
+  <div class="card">
+    <div class="ctitle">Samples</div>
+    <div class="info">
+      A <strong>sample</strong> is one tube you are staining. Count every tube that gets your antibody mix — e.g. 4 cell lines × 3 conditions = 12 samples. FMO tubes are not counted here; they are handled in Step 2.
+    </div>
+    <div class="grid3">
+      <div class="field">
+        <div class="flabel">Number of samples</div>
+        <div class="fhint">How many tubes to stain</div>
+        <input type="number" id="nS" value="12" min="1" oninput="calc();buildNames()">
+      </div>
+      <div class="field">
+        <div class="flabel">Overage factor</div>
+        <div class="fhint">1.1 = make 10% extra so you don't run short</div>
+        <input type="number" id="ov" value="1.1" min="1" step="0.05" oninput="calc()">
+      </div>
+      <div class="field">
+        <div class="flabel">Effective tube count</div>
+        <div class="fhint">Samples × overage — what you prepare for</div>
+        <input type="number" id="rEff" readonly class="ro">
+      </div>
+    </div>
+
+    <div style="margin-top:20px">
+      <div class="flabel" style="margin-bottom:4px">Sample tube names</div>
+      <div class="fhint" style="margin-bottom:12px">Name each tube — these appear in your final protocol checklist.</div>
+      <div id="nameGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Staining volume</div>
+    <div class="info">
+      The <strong>staining volume</strong> is how much liquid is in each tube while your cells incubate with the antibodies. Standard is 100 µL — datasheets are calibrated to this. Your cells get resuspended directly into this volume (buffer + antibodies already mixed together). The number on the right is how much total cocktail to prepare.
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <div class="flabel">Volume per tube (µL)</div>
+        <div class="fhint">Standard 100 µL. Don't change without a reason.</div>
+        <input type="number" id="vS" value="100" min="10" oninput="calc()">
+      </div>
+      <div class="field">
+        <div class="flabel">Total cocktail to prepare (µL)</div>
+        <div class="fhint">= effective tubes × vol/tube</div>
+        <input type="number" id="rCock" readonly class="ro">
+      </div>
+    </div>
+    <div class="warn">Example: 12 samples × 1.1 overage = 14 effective tubes × 100 µL = <strong>1400 µL cocktail</strong>. You pipette 100 µL into each of the 12 tubes.</div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Washing</div>
+    <div class="info">
+      After incubation, you wash cells to remove unbound antibody. Add a large volume of <strong>the same PBS or FACS buffer you always use</strong> — nothing special — centrifuge, aspirate. This removes background signal. For surface staining, 1 wash is standard.
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <div class="flabel">Number of wash steps</div>
+        <div class="fhint">1 is enough for surface staining</div>
+        <input type="number" id="nW" value="1" min="0" max="5" oninput="calc()">
+      </div>
+      <div class="field">
+        <div class="flabel">Buffer per wash per tube (µL)</div>
+        <div class="fhint">Top up to this volume, spin, aspirate</div>
+        <input type="number" id="wV" value="500" min="100" oninput="calc()">
+      </div>
+    </div>
+    <div class="pills">
+      <div class="pill hi">
+        <div class="pl">Total wash buffer</div>
+        <div class="pv" id="rWash">—</div>
+        <div class="pu">µL</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Final resuspension before acquisition</div>
+    <div class="info">
+      After washing, your cells are in a dry pellet. Resuspend them in buffer to acquire on the cytometer. <strong>DAPI goes into this same buffer</strong> — it is not a separate solution. Just add DAPI to your regular PBS/FACS buffer. DAPI marks dead cells so you can exclude them when gating.
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <div class="flabel">Resuspension volume per tube (µL)</div>
+        <div class="fhint">200–300 µL typical. This is your acquisition volume.</div>
+        <input type="number" id="dV" value="300" min="50" oninput="calc()">
+      </div>
+      <div class="field">
+        <div class="flabel">Total resuspension buffer (µL)</div>
+        <div class="fhint">Prepare this much PBS + DAPI before you start</div>
+        <input type="number" id="rDapi" readonly class="ro">
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:var(--ambl);border-color:#e0a060">
+    <div class="ctitle" style="color:var(--amber)">Before you start — prepare this much buffer total</div>
+    <div class="pills">
+      <div class="pill am"><div class="pl">For cocktail</div><div class="pv" id="sCock">—</div><div class="pu">µL buffer</div></div>
+      <div class="pill am"><div class="pl">For washing</div><div class="pv" id="sWash">—</div><div class="pu">µL buffer</div></div>
+      <div class="pill am"><div class="pl">For resuspension + DAPI</div><div class="pv" id="sDapi">—</div><div class="pu">µL buffer</div></div>
+      <div class="pill wh"><div class="pl" style="font-weight:600;color:var(--amber)">Total buffer</div><div class="pv" id="sTotal">—</div><div class="pu">µL</div></div>
+    </div>
+  </div>
+
+  <div class="btnrow"><button class="btn" onclick="go(1)">Next: Add antibodies →</button></div>
+</div>
+
+<!-- ═══ PANEL 2: ANTIBODIES ═══ -->
+<div class="panel" id="p1">
+  <div class="card">
+    <div class="ctitle">Your antibody panel</div>
+    <div class="info">
+      For each antibody, enter what the datasheet says: how many µL of Ab per sample, and the total sample volume. Example: "add 2 µL per 100 µL" → Ab vol = 2, sample vol = 100.<br><br>
+      <strong>FMO checkbox:</strong> tick this for any marker you need a fluorescence-minus-one control for. For your B cell panel, you typically need FMOs for CD27, CD86, and PD-L1 — the markers you gate on. Not usually needed for CD19 if it's just an identification channel.
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Antibody</th>
+            <th>Fluorochrome</th>
+            <th>µL Ab / sample<br><span style="font-size:9px;font-weight:400">(datasheet)</span></th>
+            <th>Sample vol (µL)</th>
+            <th>FMO?</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="abBody"></tbody>
+      </table>
+    </div>
+    <button class="btnadd" onclick="addAb()">+ Add antibody</button>
+  </div>
+  <div class="btnrow">
+    <button class="btng" onclick="go(0)">← Back</button>
+    <button class="btn"  onclick="go(2)">Next: Dilution prep →</button>
+  </div>
+</div>
+
+<!-- ═══ PANEL 3: DILUTION ═══ -->
+<div class="panel" id="p2">
+  <div class="card">
+    <div class="ctitle">Why dilute?</div>
+    <div class="info">
+      Most datasheets say 1–2 µL per sample. Pipetting 1 µL accurately is really hard — a small wobble is a 20% error. The fix: <strong>dilute the antibody first</strong> into a fresh tube, then pipette a larger, more manageable volume that delivers the exact same amount of antibody.<br><br>
+      If an antibody already calls for ≥ your target volume per sample, no dilution is needed — pull straight from the vial.
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <div class="flabel">Target pipetting volume (µL)</div>
+        <div class="fhint">What you want to pipette per sample. 5 µL is accurate and manageable.</div>
+        <input type="number" id="tP" value="5" min="2" max="20" oninput="buildDilution()">
+      </div>
+      <div class="field">
+        <div class="flabel">Dead volume per Ab (µL)</div>
+        <div class="fhint">Extra to prepare per antibody to cover tip losses. 20 µL is safe.</div>
+        <input type="number" id="dead" value="20" min="0" oninput="buildDilution()">
+      </div>
+    </div>
+  </div>
+  <div id="dilCards"></div>
+  <div class="btnrow">
+    <button class="btng" onclick="go(1)">← Back</button>
+    <button class="btn"  onclick="go(3)">Next: Full protocol →</button>
+  </div>
+</div>
+
+<!-- ═══ PANEL 4: PROTOCOL ═══ -->
+<div class="panel" id="p3">
+
+  <div class="card">
+    <div class="ctitle">Protocol — sample tubes</div>
+    <div id="protoSteps"></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Per-tube checklist — what goes in each sample tube</div>
+    <div class="info">
+      All sample tubes get the same 100 µL cocktail, so volumes are identical across tubes. Use this as your bench checklist. Ab volumes listed are from your <strong>intermediate stocks</strong> (Step 3), not directly from the vial.
+    </div>
+    <div id="tubeTable"></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">FMO tubes</div>
+    <div class="info">
+      An FMO tube contains <strong>all antibodies except the one you are gating on</strong>. It shows where the true negative sits for that channel when all other fluorochromes are present (which spill into each other). Treat every FMO tube identically to your samples — same incubation, same wash, same DAPI.
+    </div>
+    <div id="fmoSection"></div>
+  </div>
+
+  <div class="btnrow">
+    <button class="btng" onclick="go(2)">← Back</button>
+    <button class="btn"  onclick="window.print()">Print protocol</button>
+  </div>
+</div>
+
+</div><!-- end wrap -->
+
+<script>
+// ─── State ───────────────────────────────────────────────────
+var abs = [
+  {name:'CD19',         fluor:'BV421',  abVol:2, sVol:100, fmo:false},
+  {name:'CD27',         fluor:'PE',     abVol:2, sVol:100, fmo:true },
+  {name:'CD86',         fluor:'APC',    abVol:2, sVol:100, fmo:true },
+  {name:'PD-L1 (CD274)',fluor:'PE-Cy7', abVol:2, sVol:100, fmo:true },
+];
+var sampleNames = Array.from({length:12}, function(_,i){return 'Sample '+(i+1);});
+
+// ─── Helpers ─────────────────────────────────────────────────
+function gv(id){ var e=document.getElementById(id); return e?e.value:''; }
+function gn(id){ return parseFloat(gv(id))||0; }
+function gel(id){ return document.getElementById(id); }
+function setVal(id,v){ var e=gel(id); if(e) e.value=v; }
+function setTxt(id,v){ var e=gel(id); if(e) e.textContent=v; }
+function named(){ return abs.filter(function(a){return a.name;}); }
+
+// ─── Navigation ──────────────────────────────────────────────
+function go(i){
+  ['p0','p1','p2','p3'].forEach(function(id,j){
+    gel(id).className = 'panel'+(j===i?' on':'');
+  });
+  ['t0','t1','t2','t3'].forEach(function(id,j){
+    gel(id).className = 'tab'+(j===i?' on':j<i?' done':'');
+  });
+  if(i===2) buildDilution();
+  if(i===3) buildProtocol();
+  window.scrollTo(0,0);
+}
+
+// ─── Step 1: Calc ────────────────────────────────────────────
+function calc(){
+  var n   = gn('nS');
+  var ov  = gn('ov')  || 1;
+  var vS  = gn('vS');
+  var nW  = gn('nW');
+  var wV  = gn('wV');
+  var dV  = gn('dV');
+
+  var eff  = Math.ceil(n*ov);
+  var cock = Math.ceil(eff*vS);
+  var wash = Math.ceil(n*nW*wV);
+  var dapi = Math.ceil(n*dV);
+  var tot  = cock+wash+dapi;
+
+  setVal('rEff',  eff);
+  setVal('rCock', cock);
+  setVal('rDapi', dapi);
+  setTxt('rWash', wash);
+  setTxt('sCock', cock);
+  setTxt('sWash', wash);
+  setTxt('sDapi', dapi);
+  setTxt('sTotal',tot);
+}
+
+// ─── Step 1: Sample names ────────────────────────────────────
+function buildNames(){
+  var n = Math.max(1, gn('nS'));
+  while(sampleNames.length < n) sampleNames.push('Sample '+(sampleNames.length+1));
+  sampleNames = sampleNames.slice(0, n);
+
+  var html = sampleNames.map(function(nm, i){
+    return '<div style="display:flex;align-items:center;gap:6px">'
+      + '<span style="font-family:var(--mono);font-size:11px;color:var(--t3);min-width:20px">'+(i+1)+'.</span>'
+      + '<input type="text" value="'+nm+'" placeholder="e.g. CRC conditioned" '
+      + 'oninput="sampleNames['+i+']=this.value" '
+      + 'style="flex:1;padding:7px 10px;font-size:12px">'
+      + '</div>';
+  }).join('');
+  gel('nameGrid').innerHTML = html;
+}
+
+function getNames(){
+  return sampleNames.map(function(nm,i){ return nm || ('Sample '+(i+1)); });
+}
+
+// ─── Step 2: Ab table ────────────────────────────────────────
+function buildAbTable(){
+  var html = abs.map(function(ab, i){
+    return '<tr>'
+      + '<td><input type="text" value="'+ab.name+'" oninput="abs['+i+'].name=this.value" placeholder="e.g. CD27" style="width:110px"></td>'
+      + '<td><input type="text" value="'+ab.fluor+'" oninput="abs['+i+'].fluor=this.value" placeholder="PE" style="width:75px"></td>'
+      + '<td><input type="number" value="'+ab.abVol+'" oninput="abs['+i+'].abVol=+this.value" min="0.5" step="0.5" style="width:55px"></td>'
+      + '<td><input type="number" value="'+ab.sVol+'" oninput="abs['+i+'].sVol=+this.value" min="50" style="width:65px"></td>'
+      + '<td style="text-align:center"><input type="checkbox" '+(ab.fmo?'checked':'')+' onchange="abs['+i+'].fmo=this.checked" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)"></td>'
+      + '<td><button class="btnx" onclick="removeAb('+i+')">×</button></td>'
+      + '</tr>';
+  }).join('');
+  gel('abBody').innerHTML = html;
+}
+
+function addAb(){ abs.push({name:'',fluor:'',abVol:2,sVol:100,fmo:false}); buildAbTable(); }
+function removeAb(i){ abs.splice(i,1); buildAbTable(); }
+
+// ─── Step 3: Dilution ────────────────────────────────────────
+function buildDilution(){
+  var n    = gn('nS') || 12;
+  var ov   = gn('ov') || 1.1;
+  var tp   = gn('tP') || 5;
+  var dead = gn('dead')|| 20;
+  var abs_ = named();
+
+  if(!abs_.length){
+    gel('dilCards').innerHTML = '<p style="color:var(--t3);font-size:13px">No antibodies added — go back to Step 2.</p>';
+    return;
+  }
+
+  var html = abs_.map(function(ab){
+    var fmoT  = ab.fmo ? 1 : 0;
+    var tubes = n + fmoT;
+    var needD = ab.abVol < tp;
+    var out   = '<div class="card">';
+    out += '<div style="font-weight:600;font-size:15px;margin-bottom:12px">'+ab.name
+      + ' <span style="background:var(--bl);color:var(--blue);font-size:10px;font-weight:600;padding:2px 8px;border-radius:3px;font-family:var(--mono)">'+ab.fluor+'</span>'
+      + ' <span style="background:'+(needD?'var(--ambl)':'var(--al)')
+      + ';color:'+(needD?'var(--amber)':'var(--accent)')
+      + ';font-size:10px;font-weight:600;padding:2px 8px;border-radius:3px;font-family:var(--mono)">'+(needD?'dilute first':'pipette direct')+'</span></div>';
+
+    if(needD){
+      var df    = tp / ab.abVol;
+      var total = Math.ceil(tubes * tp * ov + dead);
+      var vial  = (total / df).toFixed(1);
+      var buf   = (total - vial).toFixed(1);
+      out += '<div class="info">Datasheet says <strong>'+ab.abVol+' µL</strong> per sample. Dilute <strong>'+df.toFixed(1)+'×</strong> so you pipette <strong>'+tp+' µL</strong> instead — same amount of antibody, much easier to pipette accurately.</div>';
+      out += '<div class="pills" style="grid-template-columns:1fr 1fr 1fr">'
+        + '<div class="pill am"><div class="pl">Pipette from vial</div><div class="pv">'+vial+' µL</div><div class="pu">into a fresh eppendorf</div></div>'
+        + '<div class="pill"><div class="pl">Add buffer (same PBS/FACS)</div><div class="pv">'+buf+' µL</div><div class="pu">to the same eppendorf</div></div>'
+        + '<div class="pill hi"><div class="pl">Total intermediate stock</div><div class="pv">'+total+' µL</div><div class="pu">→ use '+tp+' µL per tube</div></div>'
+        + '</div>';
+      out += '<div class="warn">Covers '+n+' sample'+(n>1?'s':'')+' + '+fmoT+' FMO = <strong>'+tubes+' tubes</strong> × '+tp+' µL + '+dead+' µL dead volume.</div>';
+    } else {
+      var total2 = Math.ceil(tubes * ab.abVol * ov + dead);
+      out += '<div class="info">Datasheet says <strong>'+ab.abVol+' µL</strong> per sample — already ≥ '+tp+' µL so no dilution needed. Pull straight from the vial.</div>';
+      out += '<div class="pills" style="grid-template-columns:1fr 1fr">'
+        + '<div class="pill am"><div class="pl">Total to pull from vial</div><div class="pv">'+total2+' µL</div><div class="pu">includes overage + dead vol</div></div>'
+        + '<div class="pill hi"><div class="pl">Per tube</div><div class="pv">'+ab.abVol+' µL</div><div class="pu">directly from vial</div></div>'
+        + '</div>';
+      out += '<div class="warn">Covers '+tubes+' tubes × '+ab.abVol+' µL + '+dead+' µL dead volume.</div>';
+    }
+    out += '</div>';
+    return out;
+  }).join('');
+
+  gel('dilCards').innerHTML = html;
+}
+
+// ─── Step 4: Protocol ────────────────────────────────────────
+function buildProtocol(){
+  var n    = gn('nS')  || 12;
+  var vS   = gn('vS')  || 100;
+  var ov   = gn('ov')  || 1.1;
+  var nW   = gn('nW')  || 1;
+  var wV   = gn('wV')  || 500;
+  var dV   = gn('dV')  || 300;
+  var tp   = gn('tP')  || 5;
+  var dead = gn('dead')|| 20;
+
+  var eff      = Math.ceil(n*ov);
+  var totalCk  = Math.ceil(eff*vS);
+  var abs_     = named();
+  var names    = getNames();
+
+  // cocktail recipe calc
+  var abTotal = 0;
+  var abLines = abs_.map(function(ab){
+    var pip = ab.abVol < tp ? tp : ab.abVol;
+    var amt = Math.ceil(n * pip * ov);
+    abTotal += amt;
+    return ab.name+': '+amt+' µL';
+  });
+  var bufInCk = Math.max(0, totalCk - abTotal);
+  abLines.push('Buffer: '+bufInCk+' µL');
+  abLines.push('→ Total: '+totalCk+' µL');
+
+  var needDil = abs_.filter(function(a){ return a.abVol < tp; });
+
+  var steps = [];
+
+  if(needDil.length){
+    steps.push({
+      t:'Make intermediate antibody stocks',
+      d:'Dilute the following antibodies first: <strong>'+needDil.map(function(a){return a.name;}).join(', ')+'</strong>. See Step 3 for exact volumes per antibody. Label each eppendorf clearly. Keep on ice, protected from light.',
+      c:''
+    });
+  }
+
+  steps.push({
+    t:'Prepare master antibody cocktail',
+    d:'Mix all antibodies into one tube, then top up with buffer to the total volume. This is your cocktail. You will pipette '+vS+' µL of this into each sample tube — replacing having to pipette every antibody individually into every tube.',
+    c:abLines.join(' | ')
+  });
+
+  steps.push({
+    t:'Spin down your cells',
+    d:'Centrifuge cell suspensions at 300×g for 10 min. Aspirate the supernatant completely without disturbing the pellet.',
+    c:''
+  });
+
+  steps.push({
+    t:'Add '+vS+' µL of cocktail to each sample tube',
+    d:'Resuspend each pellet directly in '+vS+' µL of cocktail. Do not add buffer first — the cocktail already contains buffer. The cells go straight into the cocktail. <strong>This step is for your '+n+' sample tubes only.</strong> FMO tubes are stained separately with their own individual mixes (see FMO section below) — their antibody volumes were already accounted for when you made your intermediate stocks in Step 3.',
+    c:'Tubes: '+names.join(', ')
+  });
+
+  steps.push({
+    t:'Incubate — 20 to 30 min, 4°C, dark',
+    d:'Put tubes in the fridge, covered with foil. 20 minutes is sufficient for most surface markers. Do not exceed 45 minutes.',
+    c:''
+  });
+
+  if(nW > 0){
+    steps.push({
+      t:'Wash '+(nW>1?nW+' times':'once'),
+      d:'Add '+wV+' µL of your regular PBS/FACS buffer to each tube. Centrifuge at 300×g for 5 min. Aspirate the supernatant completely.'+(nW>1?' Repeat '+nW+' times.':''),
+      c:wV+' µL × '+n+' tubes'+(nW>1?' × '+nW+' washes':'')+' = '+(n*wV*nW)+' µL total wash buffer'
+    });
+  }
+
+  steps.push({
+    t:'Resuspend in '+dV+' µL buffer + DAPI',
+    d:'Resuspend each pellet in '+dV+' µL of your regular PBS/FACS buffer with DAPI added. There is no special DAPI buffer — just add DAPI to your normal buffer at the recommended concentration (usually 1 µg/mL final). DAPI marks dead cells so you exclude them during analysis. Add to every tube including FMOs.',
+    c:dV+' µL × '+n+' tubes = '+(n*dV)+' µL of buffer + DAPI to prepare'
+  });
+
+  steps.push({
+    t:'Acquire on cytometer',
+    d:'Keep tubes on ice, protected from light. Acquire within 1 hour of adding DAPI. Use your unstained control to set voltages. Use FMO tubes to draw gates.',
+    c:''
+  });
+
+  gel('protoSteps').innerHTML = steps.map(function(s,i){
+    return '<div class="pstep">'
+      + '<div class="pnum">'+(i+1)+'</div>'
+      + '<div class="pbody">'
+      + '<div class="ptitle">'+s.t+'</div>'
+      + '<div class="pdesc">'+s.d+'</div>'
+      + (s.c ? '<div class="pcalc">'+s.c+'</div>' : '')
+      + '</div></div>';
+  }).join('');
+
+  // ── Per-tube checklist table ──
+  var totalAbVol = abs_.reduce(function(sum, ab){
+    return sum + (ab.abVol < tp ? tp : ab.abVol);
+  }, 0);
+  var bufPer = Math.max(0, vS - totalAbVol);
+
+  var tbl = '<div style="overflow-x:auto"><table>'
+    + '<thead><tr><th>Tube</th>'
+    + abs_.map(function(ab){ return '<th>'+ab.name+'<br><span style="font-size:9px;font-weight:400;color:var(--t3)">'+ab.fluor+'</span></th>'; }).join('')
+    + '<th>Buffer</th><th>Total</th></tr></thead><tbody>';
+
+  names.forEach(function(nm){
+    tbl += '<tr><td><strong>'+nm+'</strong></td>'
+      + abs_.map(function(ab){
+          var pip = ab.abVol < tp ? tp : ab.abVol;
+          return '<td class="cv">'+pip+' µL</td>';
+        }).join('')
+      + '<td class="cva">'+bufPer+' µL</td>'
+      + '<td style="font-family:var(--mono);font-weight:600">'+vS+' µL</td>'
+      + '</tr>';
+  });
+
+  tbl += '</tbody></table></div>'
+    + '<div class="warn" style="margin-top:12px">Ab volumes are from your <strong>intermediate stocks</strong> (Step 3), not directly from the vial. Buffer = '+vS+' µL − '+totalAbVol+' µL total Ab = '+bufPer+' µL per tube.</div>';
+
+  gel('tubeTable').innerHTML = tbl;
+
+  // ── FMO protocol ──
+  var fmoAbs = abs_.filter(function(a){ return a.fmo; });
+  var fHtml = '';
+
+  if(!fmoAbs.length){
+    fHtml = '<p style="color:var(--t3);font-size:13px;margin-top:8px">No FMOs selected in Step 2.</p>';
+  } else {
+    // recipe table
+    fHtml = '<div style="overflow-x:auto;margin-bottom:20px"><table>'
+      + '<thead><tr>'
+      + '<th>FMO tube</th>'
+      + '<th>Contains</th>'
+      + '<th>Leave out</th>'
+      + '<th>Ab vol each</th>'
+      + '<th>Buffer to top up to '+vS+' µL</th>'
+      + '</tr></thead><tbody>';
+
+    fmoAbs.forEach(function(fa){
+      var pip    = fa.abVol < tp ? tp : fa.abVol;
+      var others = abs_.filter(function(a){ return a.name !== fa.name; });
+      var totAbV = others.reduce(function(s,a){ return s+(a.abVol<tp?tp:a.abVol); }, 0);
+      var bufV   = Math.max(0, vS - totAbV);
+      fHtml += '<tr>'
+        + '<td><strong>FMO '+fa.name+'</strong><br><span style="font-size:11px;color:var(--t3)">'+fa.fluor+'</span></td>'
+        + '<td style="font-size:12px;color:var(--t2)">'+others.map(function(a){return a.name;}).join(', ')+'</td>'
+        + '<td style="color:var(--amber);font-weight:500;font-size:12px">'+fa.name+'</td>'
+        + '<td class="cv">'+pip+' µL each</td>'
+        + '<td class="cva">'+bufV+' µL</td>'
+        + '</tr>';
+    });
+
+    fHtml += '</tbody></table></div>';
+
+    // step-by-step
+    var fSteps = [
+      {
+        t:'Prepare each FMO mix individually',
+        d:'For each FMO tube, pipette the antibodies listed above into a fresh labelled eppendorf, then top up with buffer to '+vS+' µL. Do <strong>not</strong> use the master cocktail — each FMO tube has a different antibody combination. Label clearly (e.g. "FMO CD27").',
+        c:fmoAbs.length+' FMO tube'+(fmoAbs.length>1?'s':'')+': '+fmoAbs.map(function(a){return 'FMO '+a.name;}).join(', ')
+      },
+      {
+        t:'Spin down FMO cells',
+        d:'Centrifuge at 300×g for 10 min. Aspirate supernatant completely. Use the same cell type and same cell number as your samples — FMOs must match your samples exactly.',
+        c:''
+      },
+      {
+        t:'Add '+vS+' µL of FMO mix to each FMO tube',
+        d:'Resuspend the pellet directly in the '+vS+' µL FMO mix. Same as samples — cells go straight into the antibody mix, no buffer first.',
+        c:''
+      },
+      {
+        t:'Incubate alongside samples — 20 to 30 min, 4°C, dark',
+        d:'Put FMO tubes in the fridge at the same time as your samples, covered with foil. Identical incubation conditions.',
+        c:''
+      }
+    ];
+
+    if(nW > 0){
+      fSteps.push({
+        t:'Wash '+(nW>1?nW+' times':'once')+' — same as samples',
+        d:'Add '+wV+' µL of PBS/FACS buffer. Centrifuge 300×g for 5 min. Aspirate completely.'+(nW>1?' Repeat '+nW+' times.':''),
+        c:wV+' µL × '+fmoAbs.length+' FMO tube'+(fmoAbs.length>1?'s':'')+' = '+(wV*fmoAbs.length*nW)+' µL wash buffer'
+      });
+    }
+
+    fSteps.push({
+      t:'Resuspend in '+dV+' µL buffer + DAPI',
+      d:'Resuspend each FMO pellet in '+dV+' µL PBS/FACS buffer with DAPI. Identical to your samples. Keep on ice and protected from light until acquisition.',
+      c:dV+' µL × '+fmoAbs.length+' tubes = '+(dV*fmoAbs.length)+' µL'
+    });
+
+    fHtml += fSteps.map(function(s,i){
+      return '<div class="pstep">'
+        + '<div class="pnum">'+(i+1)+'</div>'
+        + '<div class="pbody">'
+        + '<div class="ptitle">'+s.t+'</div>'
+        + '<div class="pdesc">'+s.d+'</div>'
+        + (s.c ? '<div class="pcalc">'+s.c+'</div>' : '')
+        + '</div></div>';
+    }).join('');
+  }
+
+  gel('fmoSection').innerHTML = fHtml;
+}
+
+// ─── Init ────────────────────────────────────────────────────
+buildAbTable();
+buildNames();
+calc();
+</script>
+</body>
+</html>
