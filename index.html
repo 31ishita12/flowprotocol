@@ -173,13 +173,13 @@ td input:focus{border-bottom-color:var(--accent);outline:none;background:transpa
   <div class="card">
     <div class="ctitle">Washing</div>
     <div class="info">
-      After incubation, you wash cells to remove unbound antibody. Add a large volume of <strong>the same PBS or FACS buffer you always use</strong> — nothing special — centrifuge, aspirate. This removes background signal. For surface staining, 1 wash is standard.
+      After incubation, you wash cells to remove unbound antibody. Add a large volume of <strong>the same PBS or FACS buffer you always use</strong> — nothing special — centrifuge, aspirate. This removes background signal. 2 washes are recommended for surface staining to reduce non-specific background.
     </div>
     <div class="grid2">
       <div class="field">
         <div class="flabel">Number of wash steps</div>
-        <div class="fhint">1 is enough for surface staining</div>
-        <input type="number" id="nW" value="1" min="0" max="5" oninput="calc()">
+        <div class="fhint">2 washes recommended for surface staining</div>
+        <input type="number" id="nW" value="2" min="0" max="5" oninput="calc()">
       </div>
       <div class="field">
         <div class="flabel">Buffer per wash per tube (µL)</div>
@@ -306,7 +306,7 @@ td input:focus{border-bottom-color:var(--accent);outline:none;background:transpa
   <div class="card">
     <div class="ctitle">FMO tubes</div>
     <div class="info">
-      An FMO tube contains <strong>all antibodies except the one you are gating on</strong>. It shows where the true negative sits for that channel when all other fluorochromes are present (which spill into each other). Treat every FMO tube identically to your samples — same incubation, same wash, same DAPI.
+      An FMO tube contains <strong>all antibodies except the one you are gating on</strong>. It shows where the true negative sits for that channel when all other fluorochromes are present (which spill into each other). FMO mixes are prepared before you spin your cells so that FMO tubes enter the fridge at the same time as your samples — identical incubation, same washes, same DAPI.
     </div>
     <div id="fmoSection"></div>
   </div>
@@ -471,7 +471,7 @@ function buildProtocol(){
   var n    = gn('nS')  || 12;
   var vS   = gn('vS')  || 100;
   var ov   = gn('ov')  || 1.1;
-  var nW   = gn('nW')  || 1;
+  var nW   = gn('nW')  || 2;
   var wV   = gn('wV')  || 500;
   var dV   = gn('dV')  || 300;
   var tp   = gn('tP')  || 5;
@@ -481,6 +481,8 @@ function buildProtocol(){
   var totalCk  = Math.ceil(eff*vS);
   var abs_     = named();
   var names    = getNames();
+  var fmoAbs   = abs_.filter(function(a){ return a.fmo; });
+  var allTubes = n + fmoAbs.length;
 
   // cocktail recipe calc
   var abTotal = 0;
@@ -506,42 +508,58 @@ function buildProtocol(){
     });
   }
 
-  steps.push({
-    t:'Prepare master antibody cocktail',
-    d:'Mix all antibodies into one tube, then top up with buffer to the total volume. This is your cocktail. You will pipette '+vS+' µL of this into each sample tube — replacing having to pipette every antibody individually into every tube.',
-    c:abLines.join(' | ')
-  });
+  var ckTitle = fmoAbs.length ? 'Prepare master cocktail and FMO mixes' : 'Prepare master antibody cocktail';
+  var ckDesc  = 'Mix all antibodies into one tube, then top up with buffer to the total volume. This is your cocktail. You will pipette '+vS+' µL of this into each sample tube — replacing having to pipette every antibody individually into every tube.';
+  if(fmoAbs.length){
+    ckDesc += ' <strong>Also prepare each FMO mix now</strong> (see FMO recipe table below). Having all mixes ready before you spin the cells means samples and FMOs can start incubating at the same time.';
+  }
+  steps.push({ t:ckTitle, d:ckDesc, c:abLines.join(' | ') });
 
+  var spinDesc = 'Centrifuge cell suspensions at 300×g for 10 min. Aspirate the supernatant completely without disturbing the pellet.';
+  if(fmoAbs.length){
+    spinDesc += ' <strong>Spin down your FMO cells at the same time</strong> — '+fmoAbs.length+' additional tube'+(fmoAbs.length>1?'s':'')+' ('+fmoAbs.map(function(a){return 'FMO '+a.name;}).join(', ')+').';
+  }
   steps.push({
-    t:'Spin down your cells',
-    d:'Centrifuge cell suspensions at 300×g for 10 min. Aspirate the supernatant completely without disturbing the pellet.',
-    c:''
+    t:'Spin down '+(fmoAbs.length?'all cells — samples and FMOs':'your cells'),
+    d:spinDesc,
+    c:fmoAbs.length ? allTubes+' total tubes: '+n+' samples + '+fmoAbs.length+' FMO'+(fmoAbs.length>1?'s':'') : ''
   });
 
   steps.push({
     t:'Add '+vS+' µL of cocktail to each sample tube',
-    d:'Resuspend each pellet directly in '+vS+' µL of cocktail. Do not add buffer first — the cocktail already contains buffer. The cells go straight into the cocktail. <strong>This step is for your '+n+' sample tubes only.</strong> FMO tubes are stained separately with their own individual mixes (see FMO section below) — their antibody volumes were already accounted for when you made your intermediate stocks in Step 3.',
-    c:'Tubes: '+names.join(', ')
+    d:'Resuspend each sample pellet directly in '+vS+' µL of cocktail. Do not add buffer first — the cocktail already contains buffer. The cells go straight into the cocktail.',
+    c:'Samples: '+names.join(', ')
   });
 
+  if(fmoAbs.length){
+    steps.push({
+      t:'Add FMO mixes to FMO tubes',
+      d:'Resuspend each FMO cell pellet directly in its '+vS+' µL FMO mix — same as samples, cells go straight into the antibody mix, no buffer first. Do this immediately after loading the sample tubes so all tubes start incubating together.',
+      c:fmoAbs.length+' FMO tube'+(fmoAbs.length>1?'s':'')+': '+fmoAbs.map(function(a){return 'FMO '+a.name;}).join(', ')
+    });
+  }
+
+  var incDesc = 'Put all tubes'+(fmoAbs.length?' — samples and FMOs':'')+' in the fridge together, covered with foil. 20 minutes is sufficient for most surface markers. Do not exceed 45 minutes.';
   steps.push({
-    t:'Incubate — 20 to 30 min, 4°C, dark',
-    d:'Put tubes in the fridge, covered with foil. 20 minutes is sufficient for most surface markers. Do not exceed 45 minutes.',
-    c:''
+    t:'Incubate all tubes — 20 to 30 min, 4°C, dark',
+    d:incDesc,
+    c:fmoAbs.length ? allTubes+' tubes incubating together: '+n+' samples + '+fmoAbs.length+' FMO'+(fmoAbs.length>1?'s':'') : ''
   });
 
   if(nW > 0){
+    var washDesc = 'Add '+wV+' µL of your regular PBS/FACS buffer to each tube. Centrifuge at 300×g for 5 min. Aspirate the supernatant completely.'+(nW>1?' Repeat for a total of '+nW+' washes.':'');
+    if(fmoAbs.length){ washDesc += ' Wash samples and FMO tubes identically.'; }
     steps.push({
       t:'Wash '+(nW>1?nW+' times':'once'),
-      d:'Add '+wV+' µL of your regular PBS/FACS buffer to each tube. Centrifuge at 300×g for 5 min. Aspirate the supernatant completely.'+(nW>1?' Repeat '+nW+' times.':''),
-      c:wV+' µL × '+n+' tubes'+(nW>1?' × '+nW+' washes':'')+' = '+(n*wV*nW)+' µL total wash buffer'
+      d:washDesc,
+      c:wV+' µL × '+allTubes+' tubes'+(nW>1?' × '+nW+' washes':'')+' = '+(allTubes*wV*nW)+' µL total wash buffer'
     });
   }
 
   steps.push({
     t:'Resuspend in '+dV+' µL buffer + DAPI',
-    d:'Resuspend each pellet in '+dV+' µL of your regular PBS/FACS buffer with DAPI added. There is no special DAPI buffer — just add DAPI to your normal buffer at the recommended concentration (usually 1 µg/mL final). DAPI marks dead cells so you exclude them during analysis. Add to every tube including FMOs.',
-    c:dV+' µL × '+n+' tubes = '+(n*dV)+' µL of buffer + DAPI to prepare'
+    d:'Resuspend each pellet in '+dV+' µL of your regular PBS/FACS buffer with DAPI added. There is no special DAPI buffer — just add DAPI to your normal buffer at the recommended concentration (usually 1 µg/mL final). DAPI marks dead cells so you exclude them during analysis. Add to every tube'+(fmoAbs.length?' — samples and FMOs alike':'')+' .',
+    c:dV+' µL × '+allTubes+' tubes'+(fmoAbs.length?' ('+n+' samples + '+fmoAbs.length+' FMO'+(fmoAbs.length>1?'s':'')+')'  :'')+' = '+(allTubes*dV)+' µL of buffer + DAPI to prepare'
   });
 
   steps.push({
@@ -587,15 +605,16 @@ function buildProtocol(){
 
   gel('tubeTable').innerHTML = tbl;
 
-  // ── FMO protocol ──
-  var fmoAbs = abs_.filter(function(a){ return a.fmo; });
+  // ── FMO recipe reference ──
   var fHtml = '';
 
   if(!fmoAbs.length){
     fHtml = '<p style="color:var(--t3);font-size:13px;margin-top:8px">No FMOs selected in Step 2.</p>';
   } else {
+    fHtml = '<div class="info" style="margin-bottom:16px">Prepare each FMO mix <strong>before spinning your cells</strong> (see step above) so that FMO tubes and sample tubes go into the fridge together. The spin-down, staining, incubation, washing, and DAPI steps for FMOs are identical to samples and are covered in the main protocol above.</div>';
+
     // recipe table
-    fHtml = '<div style="overflow-x:auto;margin-bottom:20px"><table>'
+    fHtml += '<div style="overflow-x:auto;margin-bottom:16px"><table>'
       + '<thead><tr>'
       + '<th>FMO tube</th>'
       + '<th>Contains</th>'
@@ -620,53 +639,13 @@ function buildProtocol(){
 
     fHtml += '</tbody></table></div>';
 
-    // step-by-step
-    var fSteps = [
-      {
-        t:'Prepare each FMO mix individually',
-        d:'For each FMO tube, pipette the antibodies listed above into a fresh labelled eppendorf, then top up with buffer to '+vS+' µL. Do <strong>not</strong> use the master cocktail — each FMO tube has a different antibody combination. Label clearly (e.g. "FMO CD27").',
-        c:fmoAbs.length+' FMO tube'+(fmoAbs.length>1?'s':'')+': '+fmoAbs.map(function(a){return 'FMO '+a.name;}).join(', ')
-      },
-      {
-        t:'Spin down FMO cells',
-        d:'Centrifuge at 300×g for 10 min. Aspirate supernatant completely. Use the same cell type and same cell number as your samples — FMOs must match your samples exactly.',
-        c:''
-      },
-      {
-        t:'Add '+vS+' µL of FMO mix to each FMO tube',
-        d:'Resuspend the pellet directly in the '+vS+' µL FMO mix. Same as samples — cells go straight into the antibody mix, no buffer first.',
-        c:''
-      },
-      {
-        t:'Incubate alongside samples — 20 to 30 min, 4°C, dark',
-        d:'Put FMO tubes in the fridge at the same time as your samples, covered with foil. Identical incubation conditions.',
-        c:''
-      }
-    ];
-
-    if(nW > 0){
-      fSteps.push({
-        t:'Wash '+(nW>1?nW+' times':'once')+' — same as samples',
-        d:'Add '+wV+' µL of PBS/FACS buffer. Centrifuge 300×g for 5 min. Aspirate completely.'+(nW>1?' Repeat '+nW+' times.':''),
-        c:wV+' µL × '+fmoAbs.length+' FMO tube'+(fmoAbs.length>1?'s':'')+' = '+(wV*fmoAbs.length*nW)+' µL wash buffer'
-      });
-    }
-
-    fSteps.push({
-      t:'Resuspend in '+dV+' µL buffer + DAPI',
-      d:'Resuspend each FMO pellet in '+dV+' µL PBS/FACS buffer with DAPI. Identical to your samples. Keep on ice and protected from light until acquisition.',
-      c:dV+' µL × '+fmoAbs.length+' tubes = '+(dV*fmoAbs.length)+' µL'
-    });
-
-    fHtml += fSteps.map(function(s,i){
-      return '<div class="pstep">'
-        + '<div class="pnum">'+(i+1)+'</div>'
-        + '<div class="pbody">'
-        + '<div class="ptitle">'+s.t+'</div>'
-        + '<div class="pdesc">'+s.d+'</div>'
-        + (s.c ? '<div class="pcalc">'+s.c+'</div>' : '')
-        + '</div></div>';
-    }).join('');
+    fHtml += '<div class="pstep" style="border-bottom:none;padding-top:0">'
+      + '<div class="pnum">1</div>'
+      + '<div class="pbody">'
+      + '<div class="ptitle">Prepare each FMO mix individually</div>'
+      + '<div class="pdesc">For each FMO tube, pipette the antibodies listed above into a fresh labelled eppendorf, then top up with buffer to '+vS+' µL. Do <strong>not</strong> use the master cocktail — each FMO tube has a different antibody combination. Label clearly (e.g. "FMO CD27"). Do this at the same time as the master cocktail so everything is ready before you spin cells.</div>'
+      + '<div class="pcalc">'+fmoAbs.length+' FMO tube'+(fmoAbs.length>1?'s':'')+': '+fmoAbs.map(function(a){return 'FMO '+a.name;}).join(', ')+'</div>'
+      + '</div></div>';
   }
 
   gel('fmoSection').innerHTML = fHtml;
